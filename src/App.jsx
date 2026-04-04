@@ -5,17 +5,20 @@ import IndicatorsPanel from './components/IndicatorsPanel'
 import PositionsPanel from './components/PositionsPanel'
 import AccountPanel from './components/AccountPanel'
 import TradeGate from './components/TradeGate'
-import { getAccount, getPositions, getRegime } from './api'
-
-const SYMBOLS = ['AAPL', 'TSLA', 'MSFT', 'AMZN', 'GOOGL']
+import SearchPanel from './components/SearchPanel'
+import WatchlistPanel from './components/WatchlistPanel'
+import RegimeScannerPanel from './components/RegimeScannerPanel'
+import { getAccount, getPositions, getRegime, getWatchlist } from './api'
+import QuickTradePanel from './components/QuickTradePanel'
 
 export default function App() {
-  const [account,   setAccount]   = useState(null)
-  const [positions, setPositions] = useState([])
-  const [regime,    setRegime]    = useState(null)
-  const [loading,   setLoading]   = useState(false)
-  const [symbol,    setSymbol]    = useState('AAPL')
+  const [account,       setAccount]       = useState(null)
+  const [positions,     setPositions]     = useState([])
+  const [regime,        setRegime]        = useState(null)
+  const [watchlist,     setWatchlist]     = useState([])
+  const [symbol,        setSymbol]        = useState(null)
   const [regimeLoading, setRegimeLoading] = useState(false)
+  const [activeTab,     setActiveTab]     = useState('regime') // 'regime' | 'scanner'
 
   const fetchAccountData = async () => {
     try {
@@ -27,7 +30,21 @@ export default function App() {
     }
   }
 
+  const fetchWatchlist = async () => {
+    try {
+      const data = await getWatchlist()
+      setWatchlist(data.symbols || [])
+      // Auto-select first symbol if none selected
+      if (!symbol && data.symbols?.length > 0) {
+        handleSymbolSelect(data.symbols[0].symbol)
+      }
+    } catch (err) {
+      console.error('Watchlist fetch error:', err)
+    }
+  }
+
   const fetchRegime = async (sym) => {
+    if (!sym) return
     setRegimeLoading(true)
     setRegime(null)
     try {
@@ -40,17 +57,20 @@ export default function App() {
     }
   }
 
+  const handleSymbolSelect = (sym) => {
+    setSymbol(sym)
+    setActiveTab('regime')
+    fetchRegime(sym)
+  }
+
   useEffect(() => {
     fetchAccountData()
-    fetchRegime(symbol)
+    fetchWatchlist()
     const interval = setInterval(fetchAccountData, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  const handleSymbolChange = (sym) => {
-    setSymbol(sym)
-    fetchRegime(sym)
-  }
+  const totalPL = positions.reduce((s, p) => s + Number(p.unrealized_pl || 0), 0)
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -67,16 +87,19 @@ export default function App() {
             </div>
           </div>
           {account && (
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-6 text-xs">
               <div className="text-center">
                 <div className="text-gray-500">Portfolio</div>
                 <div className="font-bold text-white">${Number(account.portfolio_value).toLocaleString()}</div>
               </div>
               <div className="text-center">
-                <div className="text-gray-500">P&L</div>
-                <div className={`font-bold ${positions.reduce((s,p) => s + Number(p.unrealized_pl||0), 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {positions.reduce((s,p) => s + Number(p.unrealized_pl||0), 0) >= 0 ? '+' : ''}
-                  ${positions.reduce((s,p) => s + Number(p.unrealized_pl||0), 0).toFixed(2)}
+                <div className="text-gray-500">Cash</div>
+                <div className="font-bold text-blue-400">${Number(account.cash).toLocaleString()}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500">Total P&L</div>
+                <div className={`font-bold ${totalPL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {totalPL >= 0 ? '+' : ''}${totalPL.toFixed(2)}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -88,44 +111,81 @@ export default function App() {
         </div>
       </div>
 
-      {/* Symbol Selector */}
-      <div className="max-w-7xl mx-auto px-6 pt-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
-          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Analyze Symbol:</span>
-          <div className="flex gap-2">
-            {SYMBOLS.map(s => (
-              <button key={s} onClick={() => handleSymbolChange(s)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                  symbol === s
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}>
-                {s}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto">
-            <button onClick={() => fetchRegime(symbol)}
-              disabled={regimeLoading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-bold rounded-lg transition-all">
-              {regimeLoading ? '⏳ Analyzing...' : '🔄 Refresh Analysis'}
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
 
-        {/* Left Column */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
-          <RegimePanel regime={regime} loading={regimeLoading} symbol={symbol} />
-          <TradeGate regime={regime} symbol={symbol} />
+        {/* Left Column — Search + Watchlist */}
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
+          <SearchPanel
+            onSymbolSelect={handleSymbolSelect}
+            watchlist={watchlist}
+            onWatchlistUpdate={fetchWatchlist}
+          />
+          <WatchlistPanel
+            watchlist={watchlist}
+            onSymbolSelect={handleSymbolSelect}
+            onUpdate={fetchWatchlist}
+            activeSymbol={symbol}
+          />
           <AccountPanel account={account} positions={positions} />
         </div>
 
-        {/* Right Column */}
-        <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+        {/* Middle Column — Regime + Trade Gate */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
+          {/* Tab switcher */}
+          <div className="flex gap-2">
+            <button onClick={() => setActiveTab('regime')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                activeTab === 'regime' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}>
+              🌍 Regime Analysis
+            </button>
+            <button onClick={() => setActiveTab('scanner')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                activeTab === 'scanner' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}>
+              📡 Scanner
+            </button>
+          </div>
+
+          {activeTab === 'regime' && (
+            <>
+              {!symbol && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+                  <div className="text-3xl mb-3">🔍</div>
+                  <div className="text-sm text-gray-400 mb-1">No symbol selected</div>
+                  <div className="text-xs text-gray-600">Search for a symbol or add to watchlist to analyze</div>
+                </div>
+              )}
+              {symbol && (
+                <>
+                  <div className="bg-gray-800 rounded-lg px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Analyzing:</span>
+                    <span className="text-sm font-black text-white">{symbol}</span>
+                    <button onClick={() => fetchRegime(symbol)}
+                      disabled={regimeLoading}
+                      className="text-xs text-blue-400 hover:text-blue-300 disabled:text-gray-600">
+                      {regimeLoading ? '⏳' : '🔄'}
+                    </button>
+                  </div>
+                  <RegimePanel regime={regime} loading={regimeLoading} symbol={symbol} />
+                  <TradeGate regime={regime} symbol={symbol} />
+                  <QuickTradePanel symbol={symbol} regime={regime} />
+                </>
+              )}
+            </>
+          )}
+
+          {activeTab === 'scanner' && (
+            <RegimeScannerPanel
+              watchlist={watchlist}
+              onSymbolSelect={handleSymbolSelect}
+            />
+          )}
+        </div>
+
+        {/* Right Column — Indicators + Positions */}
+        <div className="col-span-12 lg:col-span-5 flex flex-col gap-4">
           <IndicatorsPanel regime={regime} loading={regimeLoading} />
           <PositionsPanel positions={positions} onRefresh={fetchAccountData} />
         </div>
