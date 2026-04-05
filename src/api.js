@@ -54,3 +54,15 @@ export const submitAlpacaTrade = (symbol, side, qty, orderType = 'market') =>
 
   export const getRegimeHistory = (symbol) =>
   axios.get(`${REGIME_API}/regime-history/${symbol}`).then(r => r.data)
+
+  // Orders (from POC 2 Alpaca API)
+export const getOrders     = () =>
+  axios.get(`${REGIME_API}/orders`).then(r => r.data)
+
+export const cancelOrder   = (orderId) =>
+  axios.delete(`${REGIME_API}/orders/${orderId}`).then(r => r.data)
+
+// Status polling (Agent Pipeline)
+export const pollStatus = (requestId) =>
+  axios.get(`${REGIME_API}/status/${requestId}`).then(r => r.data)
+

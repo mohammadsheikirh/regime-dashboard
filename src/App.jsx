@@ -8,9 +8,11 @@ import TradeGate from './components/TradeGate'
 import SearchPanel from './components/SearchPanel'
 import WatchlistPanel from './components/WatchlistPanel'
 import RegimeScannerPanel from './components/RegimeScannerPanel'
-import { getAccount, getPositions, getRegime, getWatchlist } from './api'
+//import { getAccount, getPositions, getRegime, getWatchlist } from './api'
 import QuickTradePanel from './components/QuickTradePanel'
 import RegimeHistoryChart from './components/RegimeHistoryChart'
+import OrdersPanel from './components/OrdersPanel'
+import { getAccount, getPositions, getRegime, getWatchlist, getOrders } from './api'
 
 export default function App() {
   const [account,       setAccount]       = useState(null)
@@ -20,17 +22,30 @@ export default function App() {
   const [symbol,        setSymbol]        = useState(null)
   const [regimeLoading, setRegimeLoading] = useState(false)
   const [activeTab,     setActiveTab]     = useState('regime') // 'regime' | 'scanner'
+  const [orders, setOrders] = useState([])
+
+  const fetchOrders = async () => {
+    try {
+      const data = await getOrders()
+      setOrders(data.orders || [])
+    } catch (err) {
+      console.error('Orders fetch error:', err)
+    }
+  }
 
   const fetchAccountData = async () => {
     try {
-      const [acc, pos] = await Promise.all([getAccount(), getPositions()])
+      const [acc, pos, ord] = await Promise.all([
+        getAccount(), getPositions(), getOrders()
+      ])
       setAccount(acc)
       setPositions(pos.positions || [])
+      setOrders(ord.orders || [])
     } catch (err) {
       console.error('Account fetch error:', err)
     }
   }
-
+  
   const fetchWatchlist = async () => {
     try {
       const data = await getWatchlist()
@@ -190,6 +205,7 @@ export default function App() {
           <IndicatorsPanel regime={regime} loading={regimeLoading} />
           <RegimeHistoryChart symbol={symbol} />
           <PositionsPanel positions={positions} onRefresh={fetchAccountData} />
+          <OrdersPanel orders={orders} onRefresh={fetchOrders} />
         </div>
 
       </div>
