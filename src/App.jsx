@@ -10,6 +10,7 @@ import WatchlistPanel from './components/WatchlistPanel'
 import RegimeScannerPanel from './components/RegimeScannerPanel'
 import { getAccount, getPositions, getRegime, getWatchlist } from './api'
 import QuickTradePanel from './components/QuickTradePanel'
+import RegimeHistoryChart from './components/RegimeHistoryChart'
 
 export default function App() {
   const [account,       setAccount]       = useState(null)
@@ -82,8 +83,8 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-lg">🌍</div>
             <div>
-              <h1 className="text-lg font-bold text-white">Market Regime Detection</h1>
-              <p className="text-xs text-gray-400">Context-Aware Trading · POC 3 · AWS Bedrock + Yahoo Finance</p>
+              <h1 className="text-lg font-bold text-white">Market Regime Detection - Analyze - Trade Booking</h1>
+              <p className="text-xs text-gray-400">Context-Aware Trading - AWS Bedrock + Yahoo Finance</p>
             </div>
           </div>
           {account && (
@@ -187,6 +188,7 @@ export default function App() {
         {/* Right Column — Indicators + Positions */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-4">
           <IndicatorsPanel regime={regime} loading={regimeLoading} />
+          <RegimeHistoryChart symbol={symbol} />
           <PositionsPanel positions={positions} onRefresh={fetchAccountData} />
         </div>
 

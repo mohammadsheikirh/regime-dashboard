@@ -138,14 +138,20 @@ export default function IndicatorsPanel({ regime, loading }) {
         </div>
       )}
 
-      {/* Regime Score Breakdown */}
-      <div className="bg-gray-800 rounded-lg p-3">
-        <div className="text-xs font-bold text-gray-400 mb-3">🎯 Regime Score Breakdown</div>
-        <ScoreBar label="📈 TRENDING"     score={scores.TRENDING     || 0} maxScore={maxScore} color="text-green-400" />
-        <ScoreBar label="↔️ RANGING"      score={scores.RANGING      || 0} maxScore={maxScore} color="text-yellow-400" />
-        <ScoreBar label="🌪️ VOLATILE"     score={scores.VOLATILE     || 0} maxScore={maxScore} color="text-red-400" />
-        <ScoreBar label="😴 LOW ACTIVITY" score={scores.LOW_ACTIVITY || 0} maxScore={maxScore} color="text-blue-400" />
-      </div>
+    {/* Regime Score Breakdown */}
+    <div className="bg-gray-800 rounded-lg p-3">
+      <div className="text-xs font-bold text-gray-400 mb-3">🎯 Regime Score Breakdown</div>
+      {Object.keys(scores).length === 0 ? (
+        <div className="text-xs text-gray-500">No score data available</div>
+      ) : (
+        <>
+          <ScoreBar label="📈 TRENDING"     score={scores.TRENDING     || 0} maxScore={maxScore} color="text-green-400" />
+          <ScoreBar label="↔️ RANGING"      score={scores.RANGING      || 0} maxScore={maxScore} color="text-yellow-400" />
+          <ScoreBar label="🌪️ VOLATILE"     score={scores.VOLATILE     || 0} maxScore={maxScore} color="text-red-400" />
+          <ScoreBar label="😴 LOW ACTIVITY" score={scores.LOW_ACTIVITY || 0} maxScore={maxScore} color="text-blue-400" />
+        </>
+      )}
+    </div>
     </div>
   )
 }

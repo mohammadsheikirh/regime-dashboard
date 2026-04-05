@@ -51,3 +51,6 @@ export const submitAlpacaTrade = (symbol, side, qty, orderType = 'market') =>
     message: `Get the price and news for ${symbol}, then book a ${side} trade for ${qty} shares at ${orderType} price`,
     session_id: `poc3-${SESSION_ID}`
   }).then(r => r.data)
+
+  export const getRegimeHistory = (symbol) =>
+  axios.get(`${REGIME_API}/regime-history/${symbol}`).then(r => r.data)
